@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>局域网文件上传</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 22px;
+      text-align: center;
+      margin-bottom: 24px;
+      color: #1a1a2e;
+    }
+
+    .upload-area {
+      background: #fff;
+      border-radius: 12px;
+      padding: 32px 20px;
+      text-align: center;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      margin-bottom: 24px;
+    }
+
+    .upload-btn {
+      display: inline-block;
+      background: #4f46e5;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 500;
+      padding: 14px 32px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.2s;
+    }
+
+    .upload-btn:active {
+      background: #4338ca;
+    }
+
+    .upload-btn:disabled {
+      background: #a5b4fc;
+      cursor: not-allowed;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    .hint {
+      margin-top: 12px;
+      font-size: 13px;
+      color: #888;
+    }
+
+    .file-list {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+
+    .file-list-title {
+      padding: 14px 16px;
+      font-size: 15px;
+      font-weight: 600;
+      border-bottom: 1px solid #eee;
+      color: #1a1a2e;
+    }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      padding: 14px 16px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .file-item:last-child {
+      border-bottom: none;
+    }
+
+    .file-name {
+      flex: 1;
+      color: #4f46e5;
+      font-size: 15px;
+      text-decoration: none;
+      word-break: break-all;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .file-name:active {
+      color: #4338ca;
+    }
+
+    .file-size {
+      font-size: 12px;
+      color: #999;
+      margin-left: 8px;
+      white-space: nowrap;
+    }
+
+    .empty {
+      padding: 32px 16px;
+      text-align: center;
+      color: #aaa;
+      font-size: 14px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: rgba(0, 0, 0, 0.78);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      opacity: 0;
+      transition: all 0.3s;
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .progress-wrap {
+      margin-top: 16px;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: #4f46e5;
+      transition: width 0.2s;
+    }
+
+    .progress-text {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>文件上传</h1>
+
+    <div class="upload-area">
+      <label class="upload-btn" id="uploadLabel" for="fileInput">选择文件上传</label>
+      <input type="file" id="fileInput">
+      <p class="hint">支持任意格式，无大小限制</p>
+      <div class="progress-wrap" id="progressWrap" hidden>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <p class="progress-text" id="progressText">0%</p>
+      </div>
+    </div>
+
+    <div class="file-list">
+      <div class="file-list-title">已上传文件</div>
+      <div id="fileList">
+        <div class="empty">暂无文件</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const fileList = document.getElementById('fileList');
+    const uploadLabel = document.getElementById('uploadLabel');
+    const toast = document.getElementById('toast');
+    const progressWrap = document.getElementById('progressWrap');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    async function loadFiles() {
+      try {
+        const res = await fetch('/api/files');
+        const files = await res.json();
+
+        if (files.length === 0) {
+          fileList.innerHTML = '<div class="empty">暂无文件</div>';
+          return;
+        }
+
+        fileList.innerHTML = files.map(f => `
+          <div class="file-item">
+            <a class="file-name" href="/api/download/${encodeURIComponent(f.name)}" download="${f.name}">${f.name}</a>
+            <span class="file-size">${formatSize(f.size)}</span>
+          </div>
+        `).join('');
+      } catch {
+        fileList.innerHTML = '<div class="empty">加载失败</div>';
+      }
+    }
+
+    function uploadFile(file) {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        const formData = new FormData();
+        formData.append('file', file);
+
+        xhr.upload.addEventListener('progress', (e) => {
+          if (!e.lengthComputable) return;
+          const pct = Math.round((e.loaded / e.total) * 100);
+          progressFill.style.width = pct + '%';
+          progressText.textContent = `上传中 ${pct}% (${formatSize(e.loaded)} / ${formatSize(e.total)})`;
+        });
+
+        xhr.addEventListener('load', () => {
+          try {
+            const data = JSON.parse(xhr.responseText || '{}');
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve(data);
+            } else {
+              reject(new Error(data.error || '上传失败'));
+            }
+          } catch {
+            reject(new Error('上传失败'));
+          }
+        });
+
+        xhr.addEventListener('error', () => reject(new Error('网络错误，上传失败')));
+        xhr.addEventListener('abort', () => reject(new Error('上传已取消')));
+        xhr.open('POST', '/api/upload');
+        xhr.send(formData);
+      });
+    }
+
+    fileInput.addEventListener('change', async () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      uploadLabel.textContent = '上传中...';
+      uploadLabel.style.pointerEvents = 'none';
+      progressWrap.hidden = false;
+      progressFill.style.width = '0%';
+      progressText.textContent = `准备上传 ${file.name} (${formatSize(file.size)})`;
+
+      try {
+        const data = await uploadFile(file);
+        showToast('上传成功: ' + data.name);
+        await loadFiles();
+      } catch (err) {
+        showToast(err.message || '上传失败');
+      } finally {
+        fileInput.value = '';
+        uploadLabel.textContent = '选择文件上传';
+        uploadLabel.style.pointerEvents = '';
+        progressWrap.hidden = true;
+      }
+    });
+
+    loadFiles();
+  </script>
+</body>
+</html>
