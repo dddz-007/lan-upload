@@ -12,11 +12,23 @@
 
 ## 快速开始
 
-### 环境要求
+### 方式一：双击启动（推荐，无需懂代码）
+
+1. 安装 [Node.js](https://nodejs.org/zh-cn)（只需安装一次，全部点「下一步」即可）
+2. 双击 **`启动.bat`**
+3. 浏览器会自动打开上传页面，按提示操作即可
+
+> 关闭黑色窗口 = 停止服务。如需手动停止，可双击 **`停止.bat`**。
+
+---
+
+### 方式二：命令行启动（开发者）
+
+#### 环境要求
 
 - Node.js 18+
 
-### 安装
+#### 安装
 
 ```bash
 git clone https://github.com/dddz-007/lan-upload.git
@@ -24,7 +36,7 @@ cd lan-upload
 npm install
 ```
 
-### 启动
+#### 启动
 
 ```bash
 npm start
@@ -54,6 +66,8 @@ ipconfig
 
 ```
 lan-upload/
+├── 启动.bat        # 双击启动（普通用户用这个）
+├── 停止.bat        # 双击停止服务
 ├── index.html      # 前端页面
 ├── server.js       # 后端服务（Express + Multer）
 ├── uploads/        # 上传文件存储目录（自动创建，不纳入 Git）
